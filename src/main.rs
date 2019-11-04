@@ -1,15 +1,32 @@
 use std::io;
 use rand::Rng;
 use std::string::String;
+use std::thread;
+use std::time::Duration;
+use std::vec::Vec;
+
+mod minero;
 
 fn main() {
 
-    let n= random_num();
+    let mut threadHandlers = vec![];
 
-    println!("Número random {}!", n);
+    for _number in 0..4 {
 
-}
+        let threadHandle = thread::spawn(|| {
 
-fn random_num() -> i32 {
-    rand::thread_rng().gen_range(1, 101)
+            let n= minero::ejecutar();
+
+            println!("rnd num {} ", n);
+
+        });
+
+        threadHandlers.push(threadHandle);
+
+    }
+
+    for threadHandler in threadHandlers {
+        threadHandler.join().expect("failed to join thread");;
+    }
+
 }
