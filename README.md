@@ -11,3 +11,7 @@ cargo build
 cargo run
 ```
 
+#Para release:
+```bash
+cargo build --release
+```
