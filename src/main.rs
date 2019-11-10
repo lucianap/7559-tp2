@@ -4,29 +4,55 @@ use std::string::String;
 use std::thread;
 use std::time::Duration;
 use std::vec::Vec;
+use std::sync::mpsc;
 
 mod minero;
 
+
 fn main() {
 
-    let mut threadHandlers = vec![];
+    let CANTIDAD_MINEROS = 7;
 
-    for _number in 0..4 {
+    let mut thread_handlers = vec![];
 
-        let threadHandle = thread::spawn(|| {
+    let (tx, rx) = mpsc::channel();
 
-            let n= minero::ejecutar();
+    //abro un thread por cada minero.
+    for number in 0..CANTIDAD_MINEROS {
 
-            println!("rnd num {} ", n);
+        //Clono el canal para poder ceder el ownership.
+        let thread_transmitter = mpsc::Sender::clone(&tx);
+
+        let thread_handle = thread::spawn(move || {
+
+            let min = minero::Minero{nombre:String::from("minero"), id: number};
+
+            //minero elige un número random.
+            let n = minero::ejecutar();
+
+            let message = "Random : ";
+            let val = format!("{}{}", message, n);
+
+            let mensaje = (min, val);
+
+            //envío valor al canal
+            thread_transmitter.send(mensaje).unwrap();
 
         });
 
-        threadHandlers.push(threadHandle);
+        thread_handlers.push(thread_handle);
 
     }
 
-    for threadHandler in threadHandlers {
-        threadHandler.join().expect("failed to join thread");;
+    for thread_handler in thread_handlers {
+        thread_handler.join().expect("failed to join thread");
+    }
+
+    //Recibo todos los mensajes que mandaron al canal
+    for received in rx {
+        let min = received.0;
+        let message = received.1;
+        println!("Got: \"{}\" ; From: {} - {} ", message, min.nombre, min.id);
     }
 
 }
