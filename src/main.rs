@@ -17,8 +17,9 @@ fn main() {
     let mapa: mapa::Mapa = mapa::Mapa::crear(CANTIDAD_REGIONES, 89);
 
     for (i, p) in mapa.porciones.iter().enumerate() {
-        println!("Porción {} posee {} pepitas.", i, p.pepitas);
+        println!("Porción {} posee {} pepitas.", i, *p.pepitas.lock().unwrap());
     }
+
 
     let mut thread_handlers = vec![];
 
@@ -30,6 +31,7 @@ fn main() {
         //Clono el canal para poder ceder el ownership.
         let thread_transmitter = mpsc::Sender::clone(&tx);
 
+        //Lanzo los mineros
         let thread_handle = thread::spawn(move || {
 
             let min = minero::Minero::new("nomber".to_string(), number);

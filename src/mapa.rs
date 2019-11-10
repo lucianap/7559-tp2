@@ -1,19 +1,25 @@
 use rand::Rng;
-
+use std::sync::Mutex;
 
 pub struct Mapa {
     pub num_porciones: usize,
     pub porciones: Vec<Porcion>
 }
 
+//Usa un mutex para hacerlo thread safe.
+//Ya que varios mineros van a extraer en paralelo.
 pub struct Porcion {
-    pub pepitas: i32
+    pub pepitas: Mutex<i32>
 }
 
 impl Porcion {
 
-    pub fn extraer(&self) -> i32{
-        let cantidad_extraida = rand::thread_rng().gen_range(1, self.pepitas);
+    //Extrae pepitas y recalcula la cantidad de pepitas en la región.
+    pub fn extraer(&self) -> i32 {
+        let mut mut_pepitas = self.pepitas.lock().expect("No pudo obtenerse el mutex.");
+        let cantidad_extraida = rand::thread_rng().gen_range(1, *mut_pepitas);
+        let cantidad_nueva = (*mut_pepitas) - cantidad_extraida;
+        *mut_pepitas = cantidad_nueva;
         return cantidad_extraida;
     }
 
@@ -33,15 +39,20 @@ impl Mapa {
         let mut porciones = Vec::with_capacity(*num_porciones);
 
         for _porcion_n in 1..*num_porciones{
-            let pepitas_en_porcion = rand::thread_rng().gen_range(1, *max_pepitas_por_porcion);
+            let pepitas_en_porcion = rand::thread_rng().gen_range(0, *max_pepitas_por_porcion);
             porciones.push(
                 Porcion{
-                    pepitas: pepitas_en_porcion
+                    pepitas: Mutex::new(pepitas_en_porcion)
                 }
             );
         }
 
         return porciones;
+    }
+
+    pub fn extraer_porcion(&mut self) -> Porcion {
+        let index = rand::thread_rng().gen_range(0, self.num_porciones-1);
+        return self.porciones.remove(index);
     }
 
 }

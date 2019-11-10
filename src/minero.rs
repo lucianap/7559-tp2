@@ -21,7 +21,7 @@ impl Minero {
     }
 
     pub fn explorar_porcion(&mut self, porcion: mapa::Porcion) {
-        self.pepitas = porcion.extraer();
+        self.pepitas = self.pepitas + porcion.extraer();
     }
 
 }
