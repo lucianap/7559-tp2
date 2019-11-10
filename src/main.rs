@@ -1,17 +1,24 @@
-use std::io;
 use rand::Rng;
+use std::io;
 use std::string::String;
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use std::vec::Vec;
-use std::sync::mpsc;
 
 mod minero;
-
+mod mapa;
 
 fn main() {
 
     let CANTIDAD_MINEROS = 7;
+    let CANTIDAD_REGIONES = 10;
+
+    let mapa: mapa::Mapa = mapa::Mapa::crear(CANTIDAD_REGIONES, 89);
+
+    for (i, p) in mapa.porciones.iter().enumerate() {
+        println!("Porción {} posee {} pepitas.", i, p.pepitas);
+    }
 
     let mut thread_handlers = vec![];
 
@@ -25,7 +32,7 @@ fn main() {
 
         let thread_handle = thread::spawn(move || {
 
-            let min = minero::Minero{nombre:String::from("minero"), id: number};
+            let min = minero::Minero::new("nomber".to_string(), number);
 
             //minero elige un número random.
             let n = minero::ejecutar();
