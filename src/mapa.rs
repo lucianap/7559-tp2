@@ -32,7 +32,9 @@ impl Porcion {
 }
 
 impl Mapa {
-
+    /**
+        Crea un mapa con <num_porciones>, cada porción tendrá <n> pepitas.
+    */
     pub fn crear(num_porciones: usize, max_pepitas_por_porcion: i32) -> Mapa {
         Mapa {
             num_porciones,
@@ -40,6 +42,11 @@ impl Mapa {
         }
     }
 
+    /**
+        Función privada.
+        Divide el mapa en <num_porciones>, cada una de esas pociones tendrá en n pepitas
+        siendo n un número random entre 1 y <max_pepitas_por_porcion>
+    */
     fn crear_divisiones(num_porciones: &usize, max_pepitas_por_porcion: &i32) -> Vec<Arc<Porcion>> {
         let mut porciones = Vec::with_capacity(*num_porciones);
         for _porcion_n in 1..*num_porciones{
@@ -51,10 +58,16 @@ impl Mapa {
         return porciones;
     }
 
-    pub fn extraer_porcion(&self, num_porcion: usize) -> Arc<Porcion> {
+    /**
+        Devuelve la porción <num_porción> del mapa.
+    */
+    pub fn obtener_porcion(&self, num_porcion: usize) -> Arc<Porcion> {
         return Arc::clone(&self.porciones[num_porcion]);
     }
 
+    /**
+        Devuelve el total de porciones que hay en el mapa.
+    */
     pub fn total_porciones(&self) -> usize {
         return self.porciones.len();
     }

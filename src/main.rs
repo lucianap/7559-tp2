@@ -1,16 +1,17 @@
 use std::io;
 use std::string::String;
+use std::sync::{Arc, Barrier, Mutex};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use std::vec::Vec;
-use std::sync::{Mutex, Arc, Barrier};
 
 mod minero;
 mod mapa;
 
 fn main() {
 
+    //Estos tres valores deben ser pasados por parámetro.
     let CANTIDAD_MINEROS = 7;
     let CANTIDAD_REGIONES = 10;
     let MAX_PEPITAS_POR_REGION = 700;
@@ -56,11 +57,10 @@ fn main() {
             for n in 0..mi_mapa.total_porciones() {
 
                 //Extraigo una porción del mapa.
-                let mi_porcion = mi_mapa.extraer_porcion(n);
+                let mi_porcion = mi_mapa.obtener_porcion(n);
 
                 //Minero extrae todas las pepitas del mapa.
                 minero.explorar_porcion(&mi_porcion);
-
 
                 //Envio por el canal qué minero soy y cuántas pepitas tengo acumuladas.
                 let val = format!("Pepitas: {}", minero.get_pepitas_acumuladas());
