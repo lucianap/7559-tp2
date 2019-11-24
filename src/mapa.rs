@@ -1,5 +1,6 @@
 use rand::Rng;
-use std::sync::{Mutex, Arc};
+
+use std::sync::{Arc, Mutex};
 
 pub struct Mapa {
     pub num_porciones: usize,
@@ -17,20 +18,15 @@ impl Porcion {
     //Extrae pepitas y recalcula la cantidad de pepitas en la región.
     pub fn extraer(&self) -> i32 {
         let mut mtx_pepitas = self.pepitas.lock().expect("No pudo obtenerse el mutex.");
-        if(*mtx_pepitas > 0) {
-
+        if *mtx_pepitas > 0 {
             let cantidad_extraida = rand::thread_rng().gen_range(0, *mtx_pepitas);
             let cantidad_nueva = (*mtx_pepitas) - cantidad_extraida;
-
             println!("Extracción de pepitas. Se extraen: {} pepitas. Quedan {}.", cantidad_extraida, cantidad_nueva);
-
             *mtx_pepitas = cantidad_nueva;
             return cantidad_extraida;
-
         } else {
             return 0;
         }
-
     }
 
 }
@@ -55,9 +51,12 @@ impl Mapa {
         return porciones;
     }
 
-    pub fn extraer_porcion(&mut self) -> Arc<Porcion> {
-        let index = rand::thread_rng().gen_range(0, self.num_porciones-1);
-        return self.porciones.remove(index);
+    pub fn extraer_porcion(&self, num_porcion: usize) -> Arc<Porcion> {
+        return Arc::clone(&self.porciones[num_porcion]);
+    }
+
+    pub fn total_porciones(&self) -> usize {
+        return self.porciones.len();
     }
 
 }
