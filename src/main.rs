@@ -1,6 +1,7 @@
 use std::io;
 use std::string::String;
 use std::sync::{Arc, Barrier, Mutex};
+use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
@@ -8,6 +9,7 @@ use std::vec::Vec;
 
 mod minero;
 mod mapa;
+mod minero_net;
 
 fn main() {
 
@@ -36,6 +38,16 @@ fn main() {
     //Canal de comunicación entre los mineros (senders) y el thread principal (reciever).
     let (tx, rx) = mpsc::channel();
 
+    // inicializacion de canales para la red de mineros
+    let mut receivers = Vec::new();
+    let mut senders = Vec::new();
+    for _ in 0..CANTIDAD_MINEROS {
+        let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+        receivers.push(rx);
+        senders.push(tx);
+    }
+    receivers.reverse();
+
     //Abro un thread por cada minero.
     for number in 0..CANTIDAD_MINEROS {
 
@@ -47,11 +59,22 @@ fn main() {
 
         let c = barrera_porcion.clone();
 
+        // clono para el mover el ownership a los hilos
+        let mut senders_copy = Vec::new();
+        for elem in &senders {
+            senders_copy.push(elem.clone());
+        }
+        // remuevo para pasar el ownership al hilo
+        let rx = receivers.pop().unwrap();
+
         //Lanzo los mineros
         let thread_handle = thread::spawn(move || {
 
             //Creación del minero. Mutable porque tiene atributos que cambian en cada exploración.
             let mut minero = minero::Minero::new("nombre".to_string(), number);
+
+            //Creacion del la red minero para cada minero para comunicación
+            let mut minero_hub = minero_net::MineroNet::new(number as usize, senders_copy, rx);
 
             //Comienzan las exploraciones.
             for n in 0..mi_mapa.total_porciones() {
@@ -70,6 +93,11 @@ fn main() {
 
                 //envío valor al canal
                 thread_transmitter.send(mensaje).unwrap();
+
+                //envio un valor al resto de los mineros y escucho una respuesta de todos
+                let num:i32 = 10*number;
+                minero_hub.notificar_todos(num);
+                minero_hub.escuchar_todos();
 
                 //Espero a que todos terminen.
                 c.wait();
