@@ -6,7 +6,8 @@ pub struct Minero {
     pub nombre: String,
     pub id: i32,
     pub pepitas_obtenidas: i32,
-    pub pepitas_acumuladas: i32
+    pub pepitas_acumuladas: i32,
+    pub activo: bool
 }
 
 impl Minero {
@@ -16,7 +17,8 @@ impl Minero {
             nombre,
             id,
             pepitas_acumuladas: 0,
-            pepitas_obtenidas: 0
+            pepitas_obtenidas: 0,
+            activo: true
         }
     }
 

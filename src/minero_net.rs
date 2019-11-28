@@ -1,4 +1,5 @@
 use std::sync::mpsc::{Sender, Receiver};
+use std::string::String;
 
 pub struct MineroNet {
     id:usize,
@@ -6,6 +7,17 @@ pub struct MineroNet {
     receiver: Receiver<i32>,
 }
 
+pub enum TipoMensaje {
+    Intercambio,
+    Informacion
+}
+
+pub struct Mensaje {
+    pub tipo_operacion: TipoMensaje,
+    pub id_minero_sender: i32,
+    pub activo: bool,
+    pub pepitas: i32
+}
 
 impl MineroNet {
 
@@ -30,7 +42,7 @@ impl MineroNet {
         let cant_hilos = self.senders.len();    
         for _ in 0..cant_hilos-1 {
             let result = self.receiver.recv().unwrap();
-            println!("Soy el hilo {} y recibi {}", self.id, result);
+            println!("Soy el hilo {} y recibi de {}", self.id, result);
         } 
     }
 }

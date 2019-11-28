@@ -6,6 +6,8 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use std::vec::Vec;
+use crate::minero_net::Mensaje;
+use crate::minero_net::TipoMensaje;
 
 mod minero;
 mod mapa;
@@ -82,8 +84,10 @@ fn main() {
                 //Extraigo una porción del mapa.
                 let mi_porcion = mi_mapa.obtener_porcion(n);
 
-                //Minero extrae todas las pepitas del mapa.
-                minero.explorar_porcion(&mi_porcion);
+                if minero.activo {
+                    //Minero extrae todas las pepitas del mapa.
+                    minero.explorar_porcion(&mi_porcion);
+                }
 
                 //Envio por el canal qué minero soy y cuántas pepitas tengo acumuladas.
                 let val = format!("Pepitas: {}", minero.get_pepitas_acumuladas());
@@ -95,8 +99,14 @@ fn main() {
                 thread_transmitter.send(mensaje).unwrap();
 
                 //envio un valor al resto de los mineros y escucho una respuesta de todos
-                let num:i32 = 10*number;
-                minero_hub.notificar_todos(num);
+                let mensaje: minero_net::Mensaje = Mensaje {
+                    tipo_operacion: TipoMensaje::Informacion,
+                    id_minero_sender: minero.id,
+                    activo: minero.activo,
+                    pepitas: minero.pepitas_obtenidas
+                };
+
+                minero_hub.notificar_todos(10);
                 minero_hub.escuchar_todos();
 
                 //Espero a que todos terminen.
