@@ -3,15 +3,16 @@ use std::string::String;
 
 pub struct MineroNet {
     id:usize,
-    senders: Vec<Sender<i32>>,
-    receiver: Receiver<i32>,
+    senders: Vec<Sender<Mensaje>>,
+    receiver: Receiver<Mensaje>,
 }
-
+#[derive(Copy, Clone)]
 pub enum TipoMensaje {
     Intercambio,
     Informacion
 }
 
+#[derive(Copy, Clone)]
 pub struct Mensaje {
     pub tipo_operacion: TipoMensaje,
     pub id_minero_sender: i32,
@@ -21,7 +22,7 @@ pub struct Mensaje {
 
 impl MineroNet {
 
-    pub fn new(id:usize, senders: Vec<Sender<i32>>, receiver: Receiver<i32>) -> MineroNet {
+    pub fn new(id:usize, senders: Vec<Sender<Mensaje>>, receiver: Receiver<Mensaje>) -> MineroNet {
         MineroNet {
             id,
             senders,
@@ -29,7 +30,7 @@ impl MineroNet {
         }
     }
 
-    pub fn notificar_todos(&mut self, valor: i32) {
+    pub fn notificar_todos(&mut self, valor: Mensaje) {
         let cant_hilos = self.senders.len();    
         for j in 0..cant_hilos {
             if j != self.id {
@@ -42,7 +43,7 @@ impl MineroNet {
         let cant_hilos = self.senders.len();    
         for _ in 0..cant_hilos-1 {
             let result = self.receiver.recv().unwrap();
-            println!("Soy el hilo {} y recibi de {}", self.id, result);
+            println!("Soy el hilo {} y recibi de {} informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
         } 
     }
 }

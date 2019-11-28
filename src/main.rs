@@ -44,7 +44,7 @@ fn main() {
     let mut receivers = Vec::new();
     let mut senders = Vec::new();
     for _ in 0..CANTIDAD_MINEROS {
-        let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+        let (tx, rx): (Sender<Mensaje>, Receiver<Mensaje>) = mpsc::channel();
         receivers.push(rx);
         senders.push(tx);
     }
@@ -99,14 +99,14 @@ fn main() {
                 thread_transmitter.send(mensaje).unwrap();
 
                 //envio un valor al resto de los mineros y escucho una respuesta de todos
-                let mensaje: minero_net::Mensaje = Mensaje {
+                let mensaje = Mensaje {
                     tipo_operacion: TipoMensaje::Informacion,
                     id_minero_sender: minero.id,
                     activo: minero.activo,
                     pepitas: minero.pepitas_obtenidas
                 };
 
-                minero_hub.notificar_todos(10);
+                minero_hub.notificar_todos(mensaje);
                 minero_hub.escuchar_todos();
 
                 //Espero a que todos terminen.
