@@ -6,33 +6,66 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use std::vec::Vec;
+extern crate clap;
+use clap::{Arg, App, SubCommand};
 use crate::minero_net::Mensaje;
 use crate::minero_net::TipoMensaje;
+use crate::logger::Logger;
 
 mod minero;
+mod logger;
 mod mapa;
 mod minero_net;
 
 fn main() {
+    let matches = App::new("Proceso de minado")
+        .version("1.0")
+        .author("Nestor Hualpa, Ignacio Manes y Luciana")
+        .about("Proceso de minado desarrollado para el trabajo practico 2 de Tecnicas de Programacion Concurrentes")
+        .arg(Arg::with_name("PEPITAS")
+            .short("p")
+            .long("pepitas")
+            .required(true)
+            .help("Pepitas por region")
+            .takes_value(true))
+        .arg(Arg::with_name("REGIONES")
+            .short("r")
+            .long("regiones")
+            .help("Cantidad de regiones")
+            .required(true)
+            .takes_value(true))
+        .arg(Arg::with_name("MINEROS")
+            .short("m")
+            .long("mineros")
+            .help("cantidad de mineros")
+            .required(true)
+            .takes_value(true))
+        .arg(Arg::with_name("DEBUG")
+            .short("d")
+            .long("debug")
+            .help("activa los logs de debug"))
+        .get_matches();
 
     //Estos tres valores deben ser pasados por parámetro.
-    let CANTIDAD_MINEROS = 7;
-    let CANTIDAD_REGIONES = 10;
-    let MAX_PEPITAS_POR_REGION = 700;
+    let debug =  matches.is_present("DEBUG");
+    let logger: Arc<logger::Logger> = Arc::new( logger::Logger::new(debug));
+    let CANTIDAD_MINEROS = matches.value_of("MINEROS").unwrap().parse().unwrap();
+    let CANTIDAD_REGIONES = matches.value_of("REGIONES").unwrap().parse().unwrap();
+    let MAX_PEPITAS_POR_REGION = matches.value_of("PEPITAS").unwrap().parse().unwrap();
 
     //Barrera que impide que los mineros sigan explorando la siguiente porción
     //y esperen a que todos terminen con la porción actual.
-    let barrera_porcion = Arc::new(Barrier::new(CANTIDAD_MINEROS as usize));
+    let barrera_porcion = Arc::new(Barrier::new(CANTIDAD_MINEROS));
 
     //Creación del mapa: lo pongo dentro de un ARC para poder compartirlo entre mineros.
     //AKA. cada minero obtiene una copia del mapa.
     let mapa: Arc<mapa::Mapa> = Arc::new(
         mapa::Mapa::crear(
-        CANTIDAD_REGIONES,
-        MAX_PEPITAS_POR_REGION));
+            CANTIDAD_REGIONES ,
+            MAX_PEPITAS_POR_REGION));
 
     for (i, p) in mapa.porciones.iter().enumerate() {
-        println!("Porción {} posee {} pepitas.", i, *p.pepitas.lock().unwrap());
+        logger.debug(&format!("Porción {} posee {} pepitas.", i, *p.pepitas.lock().unwrap()))
     }
 
     let mut thread_handlers = vec![];
@@ -43,7 +76,7 @@ fn main() {
     // inicializacion de canales para la red de mineros
     let mut receivers = Vec::new();
     let mut senders = Vec::new();
-    for _ in 0..CANTIDAD_MINEROS {
+    for _ in 0.. CANTIDAD_MINEROS{
         let (tx, rx): (Sender<Mensaje>, Receiver<Mensaje>) = mpsc::channel();
         receivers.push(rx);
         senders.push(tx);
@@ -51,13 +84,16 @@ fn main() {
     receivers.reverse();
 
     //Abro un thread por cada minero.
-    for number in 0..CANTIDAD_MINEROS {
+    for number in 0.. CANTIDAD_MINEROS{
 
         //Clono el canal para poder ceder el ownership del lado transmisor.
         let thread_transmitter = mpsc::Sender::clone(&tx);
 
         //Clono el mapa -> uno para cada minero.
         let mi_mapa: Arc<mapa::Mapa> = Arc::clone(&mapa);
+
+        //Clono el logger -> uno por minero
+        let mi_logger: Arc<logger::Logger> = Arc::clone(&logger);
 
         let c = barrera_porcion.clone();
 
@@ -73,7 +109,7 @@ fn main() {
         let thread_handle = thread::spawn(move || {
 
             //Creación del minero. Mutable porque tiene atributos que cambian en cada exploración.
-            let mut minero = minero::Minero::new("nombre".to_string(), number);
+            let mut minero = minero::Minero::new("nombre".to_string(), number as i32);
 
             //Creacion del la red minero para cada minero para comunicación
             let mut minero_hub = minero_net::MineroNet::new(number as usize, senders_copy, rx);
@@ -86,7 +122,7 @@ fn main() {
 
                 if minero.activo {
                     //Minero extrae todas las pepitas del mapa.
-                    minero.explorar_porcion(&mi_porcion);
+                    minero.explorar_porcion(&mi_porcion,&mi_logger);
                 }
 
                 //Envio por el canal qué minero soy y cuántas pepitas tengo acumuladas.
@@ -107,7 +143,9 @@ fn main() {
                 };
 
                 minero_hub.notificar_todos(mensaje);
-                let mut mensajes = minero_hub.escuchar_todos();
+
+                let mut mensajes = minero_hub.escuchar_todos(&mi_logger);
+
                 //Espero a que todos terminen.
                 c.wait();
                 
@@ -147,12 +185,10 @@ fn main() {
     for received in rx {
         let id = received.0;
         let message = received.1;
-        println!("Mensaje: \"{}\" ; Del minero número: {} ", message, id);
+        logger.debug(&format!("Mensaje: \"{}\" ; Del minero número: {} ", message, id));
     }
 
     for thread_handler in thread_handlers {
         thread_handler.join().expect("failed to join thread");
     }
-
-
 }

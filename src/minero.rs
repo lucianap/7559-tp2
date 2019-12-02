@@ -2,6 +2,7 @@ use std::string::String;
 
 use crate::mapa;
 use crate::minero_net::Mensaje;
+use crate::logger::Logger;
 
 pub struct Minero {
     pub nombre: String,
@@ -23,12 +24,13 @@ impl Minero {
         }
     }
 
-    pub fn explorar_porcion(&mut self, porcion: &mapa::Porcion) {
-        self.pepitas_obtenidas = porcion.extraer();
+    pub fn explorar_porcion(&mut self, porcion: &mapa::Porcion, logger: &Logger) {
+        self.pepitas_obtenidas = porcion.extraer(&logger);
         self.pepitas_acumuladas = self.pepitas_acumuladas + self.pepitas_obtenidas;
-        println!("Minero {} extrae {} pepitas. Tiene acumuladas: {}", self.id,
-                 self.pepitas_obtenidas,
-                 self.pepitas_acumuladas);
+        let mut txt = format!("Minero {} extrae {} pepitas. Tiene acumuladas: {}", self.id,
+                              self.pepitas_obtenidas,
+                              self.pepitas_acumuladas);
+        logger.debug(&txt)
     }
 
     pub fn get_pepitas_acumuladas(&self) -> &i32 {

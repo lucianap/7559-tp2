@@ -1,6 +1,8 @@
 use std::sync::mpsc::{Sender, Receiver};
 use std::string::String;
 use std::vec::Vec;
+use crate::logger::Logger;
+use std::fmt::format;
 
 pub struct MineroNet {
     id:usize,
@@ -40,13 +42,15 @@ impl MineroNet {
         }
     }
 
-    pub fn escuchar_todos(&mut self) -> Vec<Mensaje> {
+    pub fn escuchar_todos(&mut self, logger: &Logger) -> Vec<Mensaje> {
         let cant_hilos = self.senders.len();    
         let mut mensajes:Vec<Mensaje> = Vec::new();
         for _ in 0..cant_hilos-1 {
             let result = self.receiver.recv().unwrap();
-            println!("Soy el hilo {} y recibi de {} informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
             mensajes.push(result);
+            
+            let mut txt = format!("Soy el hilo {} y recibi de {} informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
+            logger.debug(&txt);
         } 
         return mensajes;
     }

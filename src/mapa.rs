@@ -1,6 +1,7 @@
 use rand::Rng;
 
 use std::sync::{Arc, Mutex};
+use crate::logger::Logger;
 
 pub struct Mapa {
     pub num_porciones: usize,
@@ -16,12 +17,13 @@ pub struct Porcion {
 impl Porcion {
 
     //Extrae pepitas y recalcula la cantidad de pepitas en la región.
-    pub fn extraer(&self) -> i32 {
+    pub fn extraer(&self,logger: &Logger) -> i32 {
         let mut mtx_pepitas = self.pepitas.lock().expect("No pudo obtenerse el mutex.");
         if *mtx_pepitas > 0 {
             let cantidad_extraida = rand::thread_rng().gen_range(0, *mtx_pepitas);
             let cantidad_nueva = (*mtx_pepitas) - cantidad_extraida;
-            println!("Extracción de pepitas. Se extraen: {} pepitas. Quedan {}.", cantidad_extraida, cantidad_nueva);
+            let mut txt = format!("Extracción de pepitas. Se extraen: {} pepitas. Quedan {}.", cantidad_extraida, cantidad_nueva);
+            logger.debug(&txt);
             *mtx_pepitas = cantidad_nueva;
             return cantidad_extraida;
         } else {
