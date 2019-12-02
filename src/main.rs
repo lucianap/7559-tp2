@@ -107,11 +107,34 @@ fn main() {
                 };
 
                 minero_hub.notificar_todos(mensaje);
-                minero_hub.escuchar_todos();
-
+                let mut mensajes = minero_hub.escuchar_todos();
                 //Espero a que todos terminen.
                 c.wait();
+                
+ 
+/*    
+                if minero.tengo_recibir_pepitas(&mensajes) {
+                    
+                    let mut mensaje:Mensaje = minero_hub.recibir_pepitas();
+                    minero.agregar_pepitas(mensaje.pepitas);
 
+                } else if minero.tengo_entregar_pepitas(&mensajes) {
+                    
+                    //envio acumulado
+                    let mensaje = Mensaje {
+                        tipo_operacion: TipoMensaje::Intercambio,
+                        id_minero_sender: minero.id,
+                        activo: minero.activo,
+                        pepitas: *minero.get_pepitas_acumuladas(),
+                    };
+
+                    let id_minero_desitino = // tomar el destino.
+                    minero_hub.enviar_a(id_minero_desitino, mensaje);
+                    
+                }
+                
+                c.wait();
+*/
             }
 
         });

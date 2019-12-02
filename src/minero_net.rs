@@ -1,5 +1,6 @@
 use std::sync::mpsc::{Sender, Receiver};
 use std::string::String;
+use std::vec::Vec;
 
 pub struct MineroNet {
     id:usize,
@@ -39,11 +40,14 @@ impl MineroNet {
         }
     }
 
-    pub fn escuchar_todos(&mut self) {
+    pub fn escuchar_todos(&mut self) -> Vec<Mensaje> {
         let cant_hilos = self.senders.len();    
+        let mut mensajes:Vec<Mensaje> = Vec::new();
         for _ in 0..cant_hilos-1 {
             let result = self.receiver.recv().unwrap();
             println!("Soy el hilo {} y recibi de {} informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
+            mensajes.push(result);
         } 
+        return mensajes;
     }
 }
