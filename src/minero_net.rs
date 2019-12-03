@@ -1,8 +1,6 @@
 use std::sync::mpsc::{Sender, Receiver};
-use std::string::String;
 use std::vec::Vec;
 use crate::logger::Logger;
-use std::fmt::format;
 
 pub struct MineroNet {
     id:usize,
@@ -22,6 +20,7 @@ pub struct Mensaje {
     pub activo: bool,
     pub pepitas: i32
 }
+
 
 impl MineroNet {
 
@@ -49,9 +48,25 @@ impl MineroNet {
             let result = self.receiver.recv().unwrap();
             mensajes.push(result);
             
-            let mut txt = format!("Soy el hilo {} y recibi de {} informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
+            let txt = format!("Soy el minero {} y recibi de {} que informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
             logger.debug(&txt);
         } 
         return mensajes;
+    }
+
+    pub fn recibir_pepitas(&mut self, logger: &Logger) -> Mensaje {
+
+        let mensaje = self.receiver.recv()
+                    .expect("No se pudo recibir el mensaje");
+        let txt = format!("RECIBIR pepitas {} DE minero {}.", mensaje.pepitas, mensaje.id_minero_sender);
+        logger.info(&txt);
+        return mensaje;
+    }
+
+    pub fn enviar_a(&mut self, id_minero_destino: usize, mensaje : Mensaje,  logger: &Logger) {
+        let txt = format!("ENVIAR pepitas {} A minero {}.", mensaje.pepitas, id_minero_destino);
+        logger.info(&txt);
+        self.senders[id_minero_destino].send(mensaje)
+            .expect("No se pudo entregar el mensaje a minero detino");
     }
 }

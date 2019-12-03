@@ -28,7 +28,7 @@ impl Logger {
         if self.debug{
             let mut mtx_file = &*self.file.lock().expect("No se pudo lockear el file");
             let mut writer = BufWriter::new(mtx_file);
-            write!(&mut writer, "[DEBUG] {} {}\n", Local::now().format("%Y-%m-%d %H:%M:%S") ,msg);
+            write!(&mut writer, "[DEBUG] {} {}\n", Local::now().format("%Y-%m-%d %H:%M:%S") ,msg).unwrap();
         }
 
     }
@@ -36,7 +36,7 @@ impl Logger {
     pub fn info(&self, msg: &str) {
         let mut mtx_file = &*self.file.lock().expect("No se pudo lockear el file");
         let mut writer = BufWriter::new(mtx_file);
-        write!(&mut writer, "[INFO] {} {}\n", Local::now().format("%Y-%m-%d %H:%M:%S") ,msg);
+        write!(&mut writer, "[INFO] {} {}\n", Local::now().format("%Y-%m-%d %H:%M:%S") ,msg).unwrap();
     }
 
 }
