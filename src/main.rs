@@ -71,7 +71,7 @@ fn main() {
     let mut thread_handlers = vec![];
 
     //Canal de comunicación entre los mineros (senders) y el thread principal (reciever).
-    let (tx, rx) = mpsc::channel();
+//    let (tx, rx) = mpsc::channel();
 
     // inicializacion de canales para la red de mineros
     let mut receivers = Vec::new();
@@ -87,7 +87,7 @@ fn main() {
     for number in 0.. cantidad_mineros{
 
         //Clono el canal para poder ceder el ownership del lado transmisor.
-        let thread_transmitter = mpsc::Sender::clone(&tx);
+//        let thread_transmitter = mpsc::Sender::clone(&tx);
 
         //Clono el mapa -> uno para cada minero.
         let mi_mapa: Arc<mapa::Mapa> = Arc::clone(&mapa);
@@ -126,13 +126,13 @@ fn main() {
                 }
 
                 //Envio por el canal qué minero soy y cuántas pepitas tengo acumuladas.
-                let val = format!("Pepitas: {}", minero.get_pepitas_acumuladas());
-                let min_id = minero.get_id().clone();
-
-                let mensaje = (min_id, val);
+//                let val = format!("Pepitas: {}", minero.get_pepitas_acumuladas());
+//                let min_id = minero.get_id().clone();
+//
+//                let mensaje = (min_id, val);
 
                 //envío valor al canal
-                thread_transmitter.send(mensaje).unwrap();
+//                thread_transmitter.send(mensaje).unwrap();
 
                 //envio un valor al resto de los mineros y escucho una respuesta de todos
                 let mensaje = Mensaje {
@@ -172,25 +172,51 @@ fn main() {
                     minero_hub.enviar_a(id_minero_desitino as usize, mensaje, &mi_logger);
                     minero.activo = false;
                 }
-                
-                c.wait();
 
+                mi_logger.debug(&format!("Minero {} está esperando a los demas", minero.id));
+
+                c.wait();
+                //envio un valor al resto de los mineros y escucho una respuesta de todos
+                let mensaje = Mensaje {
+                    tipo_operacion: TipoMensaje::Informacion,
+                    id_minero_sender: minero.id,
+                    activo: minero.activo,
+                    pepitas: minero.pepitas_obtenidas
+                };
+
+                minero_hub.notificar_todos(mensaje);
+
+                let mensajes = minero_hub.escuchar_todos(&mi_logger);
+
+                //Espero a que todos terminen.
+                c.wait();
+                if minero.queda_un_minero(&mensajes) {
+                    mi_logger.debug(&format!("Minero {} dice que quedo un solo minero", minero.id));
+                    break;
+                }else {
+                    mi_logger.debug(&format!("Minero {} continua su trabajo", minero.id));
+                }
             }
 
+            mi_logger.debug(&format!("Minero {} termina su trabajo", minero.id));
         });
 
         thread_handlers.push(thread_handle);
-
     }
-
+    logger.debug(&format!("Termino el minado"));
+    /*
     //Recibo todos los mensajes que mandaron al canal
     for received in rx {
         let id = received.0;
         let message = received.1;
         logger.debug(&format!("Mensaje: \"{}\" ; Del minero número: {} ", message, id));
     }
+    logger.debug(&format!("Termine de recibir mensajes"));*/
 
+    let mut i = 0;
     for thread_handler in thread_handlers {
+        i +=1 ;
         thread_handler.join().expect("failed to join thread");
+        logger.debug(&format!("Joined: thread número: {} ", i));
     }
 }

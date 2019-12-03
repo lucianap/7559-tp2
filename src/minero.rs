@@ -75,6 +75,14 @@ impl Minero {
         return self.id == id_minero_maximo && !hay_multiples_minimos(&mensajes);
     }
 
+    pub fn queda_un_minero( &self , mensajes: &Vec<Mensaje>) -> bool{
+        let mut mineros = 0;
+        if self.activo {mineros += 1};
+        for mensaje in mensajes {
+            if mensaje.activo {mineros += 1};
+        }
+        return mineros == 1;
+    }
 }
 
 #[warn(unused_assignments)]
@@ -333,4 +341,48 @@ mod test {
 
         assert!(!varios_minimos,"Tienen que encontrarse varios minimos en los mensajes");
     }
+
+    #[test]
+    fn notificar_si_queda_un_solo_minero_para_salir() {
+
+        //given: tengo mensajes de dos mineros  con unos olo activo
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 5;
+        minero.activo = true;
+        let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: false, pepitas: 0 };
+        let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: false, pepitas: 20 };
+        let mut mensajes:Vec<Mensaje> = Vec::new();
+        mensajes.push(mensaje1);
+        mensajes.push(mensaje2);
+
+        //when: los mensajes dicen que solo uno esta activo
+        let queda_uno = minero.queda_un_minero(&mensajes);
+
+        //then: el minero notifica que queda un solo minero activo
+
+        assert!(queda_uno, "Queda un solo minero");
+    }
+
+    #[test]
+    fn notificar_si_queda_mas_de_un_solo_minero_para_salir() {
+
+        //given: tengo mensajes de dos mineros  con ambos activos
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 5;
+        minero.activo = true;
+
+        let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: true, pepitas: 0 };
+        let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: true, pepitas: 20 };
+        let mut mensajes:Vec<Mensaje> = Vec::new();
+        mensajes.push(mensaje1);
+        mensajes.push(mensaje2);
+
+        //when: los mensajes dicen que no solo uno esta activo
+        let queda_uno = minero.queda_un_minero(&mensajes);
+
+        //then: el minero notifica que no queda un solo minero activo
+
+        assert!(!queda_uno, "Queda mas de un minero");
+    }
+
 }

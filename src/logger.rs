@@ -8,7 +8,6 @@ use chrono::Local;
 use std::io::{Write, BufWriter};
 use std::sync::Mutex;
 
-#[derive()]
 pub struct Logger {
     pub debug: bool,
     pub file: Mutex<File>
