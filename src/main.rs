@@ -130,10 +130,8 @@ fn main() {
                 //Extraigo una porción del mapa.
                 let mi_porcion = mi_mapa.obtener_porcion(n);
 
-                if minero.activo {
-                    //Minero extrae todas las pepitas del mapa.
-                    minero.explorar_porcion(&mi_porcion,&mi_logger);
-                }
+                //Minero extrae todas las pepitas del mapa.
+                minero.explorar_porcion(&mi_porcion,&mi_logger);
 
                 //Envio por el canal qué minero soy y cuántas pepitas tengo acumuladas.
 //                let val = format!("Pepitas: {}", minero.get_pepitas_acumuladas());
@@ -157,7 +155,7 @@ fn main() {
                 //Espero a que todos terminen.
                 let barrierWait = c.wait();
                 if barrierWait.is_leader() {
-                    mi_logger.debug(&"----------- fin de la Ronda");
+                    mi_logger.debug(&"----------- fin de la Ronda------------");
                 }
 
                 
@@ -209,7 +207,7 @@ fn main() {
                     mi_logger.debug(&format!("Minero {} continua su trabajo", minero.id));
                 }
             }
-
+            c.wait();
             mi_logger.debug(&format!("Minero {} termina su trabajo", minero.id));
         });
 
@@ -220,7 +218,7 @@ fn main() {
     let mut i = 0;
     for thread_handler in thread_handlers {
         i +=1 ;
-        thread_handler.join().expect("failed to join thread");
+        thread_handler.join().unwrap();
         logger.debug(&format!("Joined: thread número: {} ", i));
     }
 }

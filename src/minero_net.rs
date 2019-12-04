@@ -37,6 +37,7 @@ impl MineroNet {
         for j in 0..cant_hilos {
             if j != self.id {
                 self.senders[j].send(valor).unwrap();
+
             }
         }
     }

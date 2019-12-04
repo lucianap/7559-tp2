@@ -5,6 +5,7 @@ use crate::minero_net::Mensaje;
 use crate::logger::Logger;
 use std::collections::BTreeMap;
 use crate::minero_net::TipoMensaje;
+use crate::minero_net::TipoMensaje::Informacion;
 
 
 pub struct Minero {
@@ -28,13 +29,16 @@ impl Minero {
     }
 
     pub fn explorar_porcion(&mut self, porcion: &mapa::Porcion, logger: &Logger) {
-        self.pepitas_obtenidas = porcion.extraer(&logger);
-        self.pepitas_acumuladas = self.pepitas_acumuladas + self.pepitas_obtenidas;
-        let txt = format!("Minero {} extrae {} pepitas. Tiene acumuladas: {}", self.id,
-                              self.pepitas_obtenidas,
-                              self.pepitas_acumuladas);
+        self.pepitas_obtenidas = 0;
+        if self.activo{
+            self.pepitas_obtenidas = porcion.extraer(&logger);
+            self.pepitas_acumuladas = self.pepitas_acumuladas + self.pepitas_obtenidas;
+            let txt = format!("Minero {} extrae {} pepitas. Tiene acumuladas: {}", self.id,
+                                  self.pepitas_obtenidas,
+                                  self.pepitas_acumuladas);
 
-        logger.debug(&txt);
+            logger.debug(&txt);
+        }
     }
 
     pub fn get_pepitas_acumuladas(&self) -> &i32 {
@@ -56,7 +60,9 @@ impl Minero {
         let mut minimo_obtenido = self.pepitas_obtenidas;
         let mut id_minero_minimo = self.id;
         let mut cant_mensajes_activos = 0;
+//        println!("mensajes a {}, estado:{}", self.id, self.activo);
         for mensaje in mensajes {
+//            println!("--{}--activo: {}, sender: {}, pepitas: {}",self.id,mensaje.activo, mensaje.id_minero_sender,mensaje.pepitas );
             if !mensaje.activo { continue; }
 
             if mensaje.id_minero_sender != self.id && mensaje.pepitas <= minimo_obtenido {
@@ -65,7 +71,7 @@ impl Minero {
             }
             cant_mensajes_activos += 1;
         }
-        return  cant_mensajes_activos != 0 && id_minero_minimo == self.id;
+        return  cant_mensajes_activos != 0 && id_minero_minimo == self.id  && !self.hay_multiples_minimos(&mensajes);
     }
 
     pub fn tengo_recibir_pepitas(&self , mensajes: &Vec<Mensaje>) -> bool {
@@ -84,25 +90,43 @@ impl Minero {
             }
         }
 
-        return self.id == id_minero_maximo && !hay_multiples_minimos(&mensajes);
+        return self.id == id_minero_maximo && !self.hay_multiples_minimos(&mensajes);
     }
+    pub fn hay_multiples_minimos(&self, mensajes : &Vec<Mensaje>) -> bool{
+        let mut map:BTreeMap<i32, i32> = BTreeMap::new();
+        if self.activo{
+            map.insert(self.pepitas_obtenidas, 1);;
+        }
+        for mensaje in mensajes {
+            if !mensaje.activo  { continue; }
+            if !map.contains_key(&mensaje.pepitas) {
+                map.insert(mensaje.pepitas, 1);
+            } else {
+                map.insert(mensaje.pepitas, map.get(&mensaje.pepitas)
+                    .and_then(|a| Some(a+1)).unwrap());
+            }
+        }
+        if map.len() == 0 { return false }
 
+        let (_, contador_minimos) = map.iter().next().unwrap();
+
+        return *contador_minimos > 1;
+    }
     pub fn queda_un_minero( &self , mensajes: &Vec<Mensaje>, mi_logger: &Logger) -> bool{
         let mut mineros = 0;
         if self.activo {mineros += 1};
 
-        mi_logger.debug(&format!("Minero {} imprime sus mensajes: ", self.id));
+        //mi_logger.debug(&format!("Minero {} imprime sus mensajes: ", self.id));
 
         for mensaje in mensajes {
-            if mensaje.activo {mineros += 1};
-
 
             let tipo_m = match mensaje.tipo_operacion {
                 TipoMensaje::Informacion => "info",
                 TipoMensaje::Intercambio => "inter"
 
             };
-            mi_logger.debug(&format!("Mensaje. Id minero:{}\tTipo mensaje:{}\tActivo:{}\tPepitas:{}",
+            if mensaje.activo {mineros += 1};
+            mi_logger.debug(&format!("--{}-- Mensaje. Id minero:{}\tTipo mensaje:{}\tActivo:{}\tPepitas:{}",self.id,
                                      mensaje.id_minero_sender, tipo_m, mensaje.activo, mensaje.pepitas));
         }
         return mineros == 1;
@@ -132,23 +156,6 @@ pub fn obtener_id_minero_destino( mensajes: &Vec<Mensaje>) -> i32 {
     return id_minero_maximo; 
 }
 
-pub fn hay_multiples_minimos(mensajes : &Vec<Mensaje>) -> bool{
-    let mut map:BTreeMap<i32, i32> = BTreeMap::new();
-    for mensaje in mensajes {
-        if !mensaje.activo  { continue; }
-        if !map.contains_key(&mensaje.pepitas) {
-            map.insert(mensaje.pepitas, 1);
-        } else {
-            map.insert(mensaje.pepitas, map.get(&mensaje.pepitas)
-                                    .and_then(|a| Some(a+1)).unwrap());
-        }
-    }
-    if map.len() == 0 { return false }
-
-    let (_, contador_minimos) = map.iter().next().unwrap();
-
-    return *contador_minimos > 1;
-}
 
 #[cfg(test)]
 mod test {
@@ -156,6 +163,8 @@ mod test {
     use super::Minero;
     use crate::minero_net::Mensaje;
     use crate::minero_net::TipoMensaje;
+    use crate::logger::Logger;
+    use crate::logger;
 
     #[test]
     fn cuando_agregamos_pepitas_a_un_minero_se_debe_incrementar_lo_acumulado() {
@@ -346,7 +355,8 @@ mod test {
     fn si_hay_multiples_mensajes_el_mismo_minimo_de_pepitas_recolectadas_debe_retornar_verdadero(){
 
         // given: Dado un listado de mensajes con dos mensajes con el mismo minimo de pepitas recolectas
-
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 30;
         let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: true, pepitas: 5 };        
         let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: true, pepitas: 5 };
         let mensaje3 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 4, activo: true, pepitas: 30 };
@@ -360,7 +370,7 @@ mod test {
 
         // when: cuando detectamamos dos minimos en dos mensajes
 
-        let varios_minimos = super::hay_multiples_minimos(&mensajes);
+        let varios_minimos = minero.hay_multiples_minimos(&mensajes);
 
         // given: Es verdad que hay varios minimos
 
@@ -370,6 +380,8 @@ mod test {
     fn si_hay_multiples_mensajes_y_un_unico_minimo_de_pepitas_recolectadas_debe_retornar_falso(){
 
         // given: Dado un listado de mensajes 
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 30;
 
         let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: true, pepitas: 5 };        
         let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: true, pepitas: 10 };
@@ -384,7 +396,7 @@ mod test {
 
         // when: cuando consultamos si hay multiples minimos
 
-        let varios_minimos = super::hay_multiples_minimos(&mensajes);
+        let varios_minimos = minero.hay_multiples_minimos(&mensajes);
 
         // given: Es falso que todos los mensajes estan inactivos
 
@@ -395,7 +407,9 @@ mod test {
     fn si_hay_multiples_mensajes_y_son_todo_inactivos_debe_retornar_falso(){
 
         // given: Dado un listado de mensajes 
-
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 30;
+        minero.activo= false;
         let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: false, pepitas: 10 };        
         let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: false, pepitas: 10 };
         let mensaje3 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 4, activo: false, pepitas: 15 };
@@ -409,7 +423,7 @@ mod test {
 
         // when: cuando consultamos si hay multiples minimos
 
-        let varios_minimos = super::hay_multiples_minimos(&mensajes);
+        let varios_minimos = minero.hay_multiples_minimos(&mensajes);
 
         // given: Es falso que hay varios minimos
 
@@ -481,7 +495,8 @@ mod test {
         mensajes.push(mensaje2);
 
         //when: los mensajes dicen que solo uno esta activo
-        let queda_uno = minero.queda_un_minero(&mensajes);
+        let mi_logger= logger::Logger::new(false);
+        let queda_uno = minero.queda_un_minero(&mensajes, &mi_logger);
 
         //then: el minero notifica que queda un solo minero activo
 
@@ -503,7 +518,8 @@ mod test {
         mensajes.push(mensaje2);
 
         //when: los mensajes dicen que no solo uno esta activo
-        let queda_uno = minero.queda_un_minero(&mensajes);
+        let mi_logger= logger::Logger::new(false);
+        let queda_uno = minero.queda_un_minero(&mensajes, &mi_logger);
 
         //then: el minero notifica que no queda un solo minero activo
 
