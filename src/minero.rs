@@ -126,7 +126,7 @@ impl Minero {
 
             };
             if mensaje.activo {mineros += 1};
-            mi_logger.debug(&format!("--{}-- Mensaje. Id minero:{}\tTipo mensaje:{}\tActivo:{}\tPepitas:{}",self.id,
+            mi_logger.debug(&format!("--Minero {}-- Mensaje. Id minero:{}\tTipo mensaje:{}\tActivo:{}\tPepitas:{}",self.id,
                                      mensaje.id_minero_sender, tipo_m, mensaje.activo, mensaje.pepitas));
         }
         return mineros == 1;

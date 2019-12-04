@@ -49,8 +49,8 @@ impl MineroNet {
             let result = self.receiver.recv().unwrap();
             mensajes.push(result);
             
-            let txt = format!("Soy el minero {} y recibi de {} que informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
-            logger.debug(&txt);
+//            let txt = format!("Soy el minero {} y recibi de {} que informe {} pepitas", self.id, result.id_minero_sender, result.pepitas);
+//            logger.debug(&txt);
         } 
         return mensajes;
     }

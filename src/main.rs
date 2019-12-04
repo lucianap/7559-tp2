@@ -213,7 +213,7 @@ fn main() {
 
         thread_handlers.push(thread_handle);
     }
-    logger.debug(&format!("Termino el minado"));
+    //logger.debug(&format!("Termino el minado"));
 
     let mut i = 0;
     for thread_handler in thread_handlers {
