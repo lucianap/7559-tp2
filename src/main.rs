@@ -11,6 +11,7 @@ use clap::{Arg, App, SubCommand};
 use crate::minero_net::Mensaje;
 use crate::minero_net::TipoMensaje;
 use crate::logger::Logger;
+use std::option::Option::Some;
 
 mod minero;
 mod logger;
@@ -40,6 +41,12 @@ fn main() {
             .help("cantidad de mineros")
             .required(true)
             .takes_value(true))
+        .arg(Arg::with_name("MAX_PEPITAS_POR_MINERO_EN_EXPLORACION")
+            .short("x")
+            .long("max_pepitas_minero")
+            .help("maximo numero de pepitas que un minero puede extraer de una region")
+            .takes_value(true)
+            .required(false))
         .arg(Arg::with_name("DEBUG")
             .short("d")
             .long("debug")
@@ -51,7 +58,12 @@ fn main() {
     let logger: Arc<logger::Logger> = Arc::new( logger::Logger::new(debug));
     let cantidad_mineros = matches.value_of("MINEROS").unwrap().parse().unwrap();
     let cantidad_regiones = matches.value_of("REGIONES").unwrap().parse().unwrap();
-    let max_pepitas_por_region = matches.value_of("PEPITAS").unwrap().parse().unwrap();
+    let max_pepitas_por_region: i32 = matches.value_of("PEPITAS").unwrap().parse().unwrap();
+
+    let max_pepitas_por_minero : i32 =  match matches.value_of("MAX_PEPITAS_POR_MINERO_EN_EXPLORACION") {
+        Some(x) => x.parse().unwrap(),
+        None    => max_pepitas_por_region.clone()
+    };
 
     //Barrera que impide que los mineros sigan explorando la siguiente porción
     //y esperen a que todos terminen con la porción actual.
@@ -62,7 +74,8 @@ fn main() {
     let mapa: Arc<mapa::Mapa> = Arc::new(
         mapa::Mapa::crear(
             cantidad_regiones ,
-            max_pepitas_por_region));
+            max_pepitas_por_region,
+        max_pepitas_por_minero));
 
     for (i, p) in mapa.porciones.iter().enumerate() {
         logger.debug(&format!("Porción {} posee {} pepitas.", i, *p.pepitas.lock().unwrap()))

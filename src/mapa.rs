@@ -3,6 +3,7 @@ use rand::Rng;
 use std::sync::{Arc, Mutex};
 use crate::logger::Logger;
 use std::{thread, time};
+use std::cmp;
 
 pub struct Mapa {
     pub num_porciones: usize,
@@ -12,13 +13,14 @@ pub struct Mapa {
 //Usa un mutex para hacerlo thread safe.
 //Ya que varios mineros van a extraer en paralelo.
 pub struct Porcion {
-    pub pepitas: Mutex<i32>
+    pub pepitas: Mutex<i32>,
+    pub max_pepitas_extraibles: i32
 }
 
 impl Porcion {
 
     fn simular_paso_del_tiempo() -> () {
-        let random_int_in_range = rand::thread_rng().gen_range(1000, 5000);
+        let random_int_in_range = rand::thread_rng().gen_range(10, 500);
         let ten_millis = time::Duration::from_millis(random_int_in_range);
         thread::sleep(ten_millis);
     }
@@ -30,7 +32,7 @@ impl Porcion {
 
         let mut mtx_pepitas = self.pepitas.lock().expect("No pudo obtenerse el mutex.");
         if *mtx_pepitas > 0 {
-            let cantidad_extraida = rand::thread_rng().gen_range(0, *mtx_pepitas);
+            let cantidad_extraida = rand::thread_rng().gen_range(0, self.max_pepitas_extraibles);
             let cantidad_nueva = (*mtx_pepitas) - cantidad_extraida;
             let mut txt = format!("Extracción de pepitas. Se extraen: {} pepitas. Quedan {}.", cantidad_extraida, cantidad_nueva);
             logger.debug(&txt);
@@ -47,10 +49,10 @@ impl Mapa {
     /**
         Crea un mapa con <num_porciones>, cada porción tendrá <n> pepitas.
     */
-    pub fn crear(num_porciones: usize, max_pepitas_por_porcion: i32) -> Mapa {
+    pub fn crear(num_porciones: usize, max_pepitas_por_porcion: i32, max_pepitas_extraibles_por_porcion: i32) -> Mapa {
         Mapa {
             num_porciones,
-            porciones: Mapa::crear_divisiones(&num_porciones, &max_pepitas_por_porcion)
+            porciones: Mapa::crear_divisiones(&num_porciones, &max_pepitas_por_porcion, &max_pepitas_extraibles_por_porcion)
         }
     }
 
@@ -59,12 +61,13 @@ impl Mapa {
         Divide el mapa en <num_porciones>, cada una de esas pociones tendrá en n pepitas
         siendo n un número random entre 1 y <max_pepitas_por_porcion>
     */
-    fn crear_divisiones(num_porciones: &usize, max_pepitas_por_porcion: &i32) -> Vec<Arc<Porcion>> {
+    fn crear_divisiones(num_porciones: &usize, max_pepitas_por_porcion: &i32, max_pepitas_extraibles_por_porcion: &i32) -> Vec<Arc<Porcion>> {
         let mut porciones = Vec::with_capacity(*num_porciones);
         for _porcion_n in 1..*num_porciones{
             let pepitas_en_porcion = rand::thread_rng().gen_range(0, *max_pepitas_por_porcion);
             porciones.push(Arc::new(
-                Porcion{ pepitas: Mutex::new(pepitas_en_porcion) }
+                Porcion{ pepitas: Mutex::new(pepitas_en_porcion),
+                              max_pepitas_extraibles: cmp::min(pepitas_en_porcion, *max_pepitas_extraibles_por_porcion)}
             ));
         }
         return porciones;
