@@ -155,7 +155,11 @@ fn main() {
                 let mensajes = minero_hub.escuchar_todos(&mi_logger);
 
                 //Espero a que todos terminen.
-                c.wait();
+                let barrierWait = c.wait();
+                if barrierWait.is_leader() {
+                    mi_logger.debug(&"----------- fin de la Ronda");
+                }
+
                 
                 if minero.tengo_recibir_pepitas(&mensajes) {
                     let txt = format!("Minero {} tiene que recibir pepitas", minero.id);
@@ -198,7 +202,7 @@ fn main() {
 
                 //Espero a que todos terminen.
                 c.wait();
-                if minero.queda_un_minero(&mensajes) {
+                if minero.queda_un_minero(&mensajes, &mi_logger) {
                     mi_logger.debug(&format!("Minero {} dice que quedo un solo minero", minero.id));
                     break;
                 }else {

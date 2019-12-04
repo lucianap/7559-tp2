@@ -4,6 +4,7 @@ use crate::mapa;
 use crate::minero_net::Mensaje;
 use crate::logger::Logger;
 use std::collections::BTreeMap;
+use crate::minero_net::TipoMensaje;
 
 
 pub struct Minero {
@@ -86,11 +87,23 @@ impl Minero {
         return self.id == id_minero_maximo && !hay_multiples_minimos(&mensajes);
     }
 
-    pub fn queda_un_minero( &self , mensajes: &Vec<Mensaje>) -> bool{
+    pub fn queda_un_minero( &self , mensajes: &Vec<Mensaje>, mi_logger: &Logger) -> bool{
         let mut mineros = 0;
         if self.activo {mineros += 1};
+
+        mi_logger.debug(&format!("Minero {} imprime sus mensajes: ", self.id));
+
         for mensaje in mensajes {
             if mensaje.activo {mineros += 1};
+
+
+            let tipo_m = match mensaje.tipo_operacion {
+                TipoMensaje::Informacion => "info",
+                TipoMensaje::Intercambio => "inter"
+
+            };
+            mi_logger.debug(&format!("Mensaje. Id minero:{}\tTipo mensaje:{}\tActivo:{}\tPepitas:{}",
+                                     mensaje.id_minero_sender, tipo_m, mensaje.activo, mensaje.pepitas));
         }
         return mineros == 1;
     }
