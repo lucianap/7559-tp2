@@ -49,18 +49,28 @@ impl Minero {
     }
 
     pub fn tengo_entregar_pepitas( &self , mensajes: &Vec<Mensaje>) -> bool{
+
+        if !self.activo { return false; }
+
         let mut minimo_obtenido = self.pepitas_obtenidas;
         let mut id_minero_minimo = self.id;
+        let mut cant_mensajes_activos = 0;
         for mensaje in mensajes {
+            if !mensaje.activo { continue; }
+
             if mensaje.id_minero_sender != self.id && mensaje.pepitas <= minimo_obtenido {
                 minimo_obtenido = mensaje.pepitas;
                 id_minero_minimo = mensaje.id_minero_sender;
             }
+            cant_mensajes_activos += 1;
         }
-        return id_minero_minimo == self.id;
+        return  cant_mensajes_activos != 0 && id_minero_minimo == self.id;
     }
 
     pub fn tengo_recibir_pepitas(&self , mensajes: &Vec<Mensaje>) -> bool {
+
+        if !self.activo { return false; }
+
         let mut maximo_obtenido = self.pepitas_obtenidas;
         let mut id_minero_maximo = self.id;
         for mensaje in mensajes {
@@ -111,8 +121,8 @@ pub fn obtener_id_minero_destino( mensajes: &Vec<Mensaje>) -> i32 {
 
 pub fn hay_multiples_minimos(mensajes : &Vec<Mensaje>) -> bool{
     let mut map:BTreeMap<i32, i32> = BTreeMap::new();
-
     for mensaje in mensajes {
+        if !mensaje.activo  { continue; }
         if !map.contains_key(&mensaje.pepitas) {
             map.insert(mensaje.pepitas, 1);
         } else {
@@ -120,6 +130,8 @@ pub fn hay_multiples_minimos(mensajes : &Vec<Mensaje>) -> bool{
                                     .and_then(|a| Some(a+1)).unwrap());
         }
     }
+    if map.len() == 0 { return false }
+
     let (_, contador_minimos) = map.iter().next().unwrap();
 
     return *contador_minimos > 1;
@@ -190,6 +202,29 @@ mod test {
         //then: El minero 1, no tiene que entregar pepitas 
         
         assert!(!entregar, "El minero esta entregando pepitas y no deberia porque no es el unico con minimo");
+    
+    }
+
+    #[test]
+    fn si_un_minero_recolecta_el_minimo_y_los_otros_estan_inactivos_no_debe_entregar_pepitas() {
+
+        //given: Un minero con 2 pepitas recolectadas y mensajes
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 2;
+        minero.activo = true;
+
+        let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: false, pepitas: 5 };        
+        let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: false, pepitas: 10 };
+        let mut mensajes:Vec<Mensaje> = Vec::new();
+        mensajes.push(mensaje1);
+        mensajes.push(mensaje2);
+
+        //when: Los mensajes indican que el resto de los mineros estan inactivos
+        let entregar = minero.tengo_entregar_pepitas(&mensajes);
+        
+        //then: El minero 1, no tiene que entregar pepitas 
+        
+        assert!(!entregar, "El minero esta entregando pepitas y no deberia porque es el unico activo");
     
     }
 
@@ -319,7 +354,7 @@ mod test {
         assert!(varios_minimos,"Tienen que encontrarse varios minimos en los mensajes");
     }
     #[test]
-    fn sihay_multiples_mensajes_y_un_unico_minimo_de_pepitas_recolectadas_debe_retornar_falso(){
+    fn si_hay_multiples_mensajes_y_un_unico_minimo_de_pepitas_recolectadas_debe_retornar_falso(){
 
         // given: Dado un listado de mensajes 
 
@@ -338,9 +373,85 @@ mod test {
 
         let varios_minimos = super::hay_multiples_minimos(&mensajes);
 
+        // given: Es falso que todos los mensajes estan inactivos
+
+        assert!(!varios_minimos,"Tienen que omitirse todos los mensajes");
+    }
+
+    #[test]
+    fn si_hay_multiples_mensajes_y_son_todo_inactivos_debe_retornar_falso(){
+
+        // given: Dado un listado de mensajes 
+
+        let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: false, pepitas: 10 };        
+        let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: false, pepitas: 10 };
+        let mensaje3 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 4, activo: false, pepitas: 15 };
+        let mensaje4 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: false, pepitas: 15 };
+
+        let mut mensajes:Vec<Mensaje> = Vec::new();
+        mensajes.push(mensaje1);
+        mensajes.push(mensaje2);
+        mensajes.push(mensaje3);
+        mensajes.push(mensaje4);
+
+        // when: cuando consultamos si hay multiples minimos
+
+        let varios_minimos = super::hay_multiples_minimos(&mensajes);
+
         // given: Es falso que hay varios minimos
 
         assert!(!varios_minimos,"Tienen que encontrarse varios minimos en los mensajes");
+    }
+
+    // Si el minero esta inactivo, no debe entregar pepitas
+    // Si el minero esta inactivo, no debe recibir pepitas
+
+    #[test]
+    fn si_un_minero_esta_inactivo_entonces_no_debo_recibir_pepitas() {
+
+        //given: Un minero con 30 pepitas recolectadas y otros dos mineros con igual minimo de recolecion de pepitas
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 30;
+        minero.activo = false;
+
+        let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: true, pepitas: 5 };        
+        let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: true, pepitas: 10 };
+
+        let mut mensajes:Vec<Mensaje> = Vec::new();
+        mensajes.push(mensaje1);
+        mensajes.push(mensaje2);
+
+        //when: Los mensajes indican que el resto de los mineros recolecto mas
+        let recibir = minero.tengo_recibir_pepitas(&mensajes);
+
+        //then
+        assert!(!recibir, "El minero no debe recibir pepitas porque esta inactivo");
+    
+    }
+
+    // cualquier mensaje de minero inactivo, se omite
+
+
+    #[test]
+    fn si_un_minero_esta_inactivo_entonces_no_debe_entregar_pepitas() {
+
+        //given: Un minero con 10 pepitas recolectadas y mensajes
+        let mut minero:Minero = Minero::new("Pedro".to_string(), 1);
+        minero.pepitas_obtenidas = 5;
+        minero.activo = false;
+
+        let mensaje1 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 2, activo: true, pepitas: 10 };        
+        let mensaje2 = Mensaje { tipo_operacion: TipoMensaje::Informacion, id_minero_sender: 3, activo: true, pepitas: 20 };
+        let mut mensajes:Vec<Mensaje> = Vec::new();
+        mensajes.push(mensaje1);
+        mensajes.push(mensaje2);
+
+        //when: Los mensajes indican que el resto de los mineros recolecto mas
+        let entregar = minero.tengo_entregar_pepitas(&mensajes);
+        
+        //then: El minero 1, tien que entregar pepitas 
+        
+        assert!(!entregar, "El minero no tiene que entregar pepitas");
     }
 
     #[test]
@@ -386,4 +497,6 @@ mod test {
         assert!(!queda_uno, "Queda mas de un minero");
     }
 
+
+    
 }
