@@ -70,9 +70,6 @@ fn main() {
 
     let mut thread_handlers = vec![];
 
-    //Canal de comunicación entre los mineros (senders) y el thread principal (reciever).
-//    let (tx, rx) = mpsc::channel();
-
     // inicializacion de canales para la red de mineros
     let mut receivers = Vec::new();
     let mut senders = Vec::new();
@@ -131,8 +128,6 @@ fn main() {
 //
 //                let mensaje = (min_id, val);
 
-                //envío valor al canal
-//                thread_transmitter.send(mensaje).unwrap();
 
                 //envio un valor al resto de los mineros y escucho una respuesta de todos
                 let mensaje = Mensaje {
@@ -204,14 +199,6 @@ fn main() {
         thread_handlers.push(thread_handle);
     }
     logger.debug(&format!("Termino el minado"));
-    /*
-    //Recibo todos los mensajes que mandaron al canal
-    for received in rx {
-        let id = received.0;
-        let message = received.1;
-        logger.debug(&format!("Mensaje: \"{}\" ; Del minero número: {} ", message, id));
-    }
-    logger.debug(&format!("Termine de recibir mensajes"));*/
 
     let mut i = 0;
     for thread_handler in thread_handlers {

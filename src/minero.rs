@@ -32,6 +32,7 @@ impl Minero {
         let txt = format!("Minero {} extrae {} pepitas. Tiene acumuladas: {}", self.id,
                               self.pepitas_obtenidas,
                               self.pepitas_acumuladas);
+
         logger.debug(&txt);
     }
 

@@ -2,6 +2,7 @@ use rand::Rng;
 
 use std::sync::{Arc, Mutex};
 use crate::logger::Logger;
+use std::{thread, time};
 
 pub struct Mapa {
     pub num_porciones: usize,
@@ -16,8 +17,17 @@ pub struct Porcion {
 
 impl Porcion {
 
+    fn simular_paso_del_tiempo() -> () {
+        let random_int_in_range = rand::thread_rng().gen_range(1000, 5000);
+        let ten_millis = time::Duration::from_millis(random_int_in_range);
+        thread::sleep(ten_millis);
+    }
+
     //Extrae pepitas y recalcula la cantidad de pepitas en la región.
     pub fn extraer(&self,logger: &Logger) -> i32 {
+
+        Porcion::simular_paso_del_tiempo();
+
         let mut mtx_pepitas = self.pepitas.lock().expect("No pudo obtenerse el mutex.");
         if *mtx_pepitas > 0 {
             let cantidad_extraida = rand::thread_rng().gen_range(0, *mtx_pepitas);
